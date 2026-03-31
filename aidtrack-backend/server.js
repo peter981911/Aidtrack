@@ -19,14 +19,13 @@ const BCRYPT_SALT_ROUNDS = 10;
 app.use(cors());
 app.use(express.json());
 
-// --- EMAIL CONFIGURATION (BREVO API - BYPASSES SMTP BLOCKS & DOMAIN LIMITS) ---
-let brevoApiKey = null;
-if (process.env.BREVO_API_KEY) {
-  // Trim spaces and quotes just in case they were copy-pasted into Render
-  brevoApiKey = process.env.BREVO_API_KEY.trim().replace(/['"]+/g, '');
-  console.log('✅ Brevo Email API initialized');
+// --- EMAIL CONFIGURATION (SENDGRID API) ---
+let sendgridApiKey = null;
+if (process.env.SENDGRID_API_KEY) {
+  sendgridApiKey = process.env.SENDGRID_API_KEY.trim().replace(/['"]+/g, '');
+  console.log('✅ SendGrid Email API initialized');
 } else {
-  console.warn('⚠️ WARNING: BREVO_API_KEY is missing. Emails will not be sent.');
+  console.warn('⚠️ WARNING: SENDGRID_API_KEY is missing. Emails will not be sent.');
 }
 
 // --- DATABASE CONNECTION ---
@@ -146,7 +145,7 @@ app.post('/api/send-otp', async (req, res) => {
     await OTP.findOneAndDelete({ email }); // Clear previous
     await OTP.create({ email, otp });
 
-    if (brevoApiKey) {
+    if (sendgridApiKey) {
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
           <h2 style="color: #333;">Verify your email address</h2>
@@ -158,29 +157,30 @@ app.post('/api/send-otp', async (req, res) => {
         </div>
       `;
 
-      // The sender email must be the exact email the user verified on Brevo
+      // The sender email must be exactly the one verified in Sendgrid
       const senderEmail = process.env.SENDER_EMAIL || 'noreply@aidtrack.com';
 
       try {
-        await axios.post('https://api.brevo.com/v3/smtp/email', {
-          sender: { name: "AidTrack Verification", email: senderEmail },
-          to: [{ email: email }],
-          subject: 'AidTrack Verification Code',
-          htmlContent: emailHtml
+        await axios.post('https://api.sendgrid.com/v3/mail/send', {
+          personalizations: [{
+            to: [{ email: email }],
+            subject: 'AidTrack Verification Code'
+          }],
+          from: { email: senderEmail, name: "AidTrack Verification" },
+          content: [{ type: 'text/html', value: emailHtml }]
         }, {
           headers: {
-            'accept': 'application/json',
-            'api-key': brevoApiKey,
-            'content-type': 'application/json'
+            'Authorization': `Bearer ${sendgridApiKey}`,
+            'Content-Type': 'application/json'
           }
         });
 
-        console.log('Verification email sent via Brevo HTTP API to:', email);
+        console.log('Verification email sent via SendGrid API to:', email);
         res.status(200).json({ message: 'Verification code sent to your email!' });
-      } catch (brevoErr) {
-        const errorDetail = brevoErr.response?.data?.message || brevoErr.message;
-        console.error("Brevo API Error:", brevoErr.response?.data || brevoErr.message);
-        return res.status(500).json({ message: `Brevo Rejected: ${errorDetail}` });
+      } catch (sgError) {
+        const errorDetail = sgError.response?.data?.errors?.[0]?.message || sgError.message;
+        console.error("SendGrid API Error:", sgError.response?.data || sgError.message);
+        return res.status(500).json({ message: `SendGrid Rejected: ${errorDetail}` });
       }
 
     } else {
