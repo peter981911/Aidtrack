@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const crypto = require('crypto');
 
 // --- APP CONFIGURATION ---
@@ -159,29 +160,26 @@ app.post('/api/send-otp', async (req, res) => {
       // The sender email must be the exact email the user verified on Brevo
       const senderEmail = process.env.SENDER_EMAIL || 'noreply@aidtrack.com';
 
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': brevoApiKey,
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
+      try {
+        await axios.post('https://api.brevo.com/v3/smtp/email', {
           sender: { name: "AidTrack Verification", email: senderEmail },
           to: [{ email: email }],
           subject: 'AidTrack Verification Code',
           htmlContent: emailHtml
-        })
-      });
+        }, {
+          headers: {
+            'accept': 'application/json',
+            'api-key': brevoApiKey,
+            'content-type': 'application/json'
+          }
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Brevo API Error:", errorData);
-        return res.status(500).json({ message: 'Failed to send email via Brevo.', error: errorData.message || 'Unknown provider error' });
+        console.log('Verification email sent via Brevo HTTP API to:', email);
+        res.status(200).json({ message: 'Verification code sent to your email!' });
+      } catch (brevoErr) {
+        console.error("Brevo API Error:", brevoErr.response?.data || brevoErr.message);
+        return res.status(500).json({ message: 'Failed to send email via Brevo.', error: brevoErr.response?.data?.message || 'Unknown provider error' });
       }
-
-      console.log('Verification email sent via Brevo HTTP API to:', email);
-      res.status(200).json({ message: 'Verification code sent to your email!' });
 
     } else {
       // Fallback for local testing without API key: just print the code in the terminal
