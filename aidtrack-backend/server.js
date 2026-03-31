@@ -22,7 +22,8 @@ app.use(express.json());
 // --- EMAIL CONFIGURATION (BREVO API - BYPASSES SMTP BLOCKS & DOMAIN LIMITS) ---
 let brevoApiKey = null;
 if (process.env.BREVO_API_KEY) {
-  brevoApiKey = process.env.BREVO_API_KEY;
+  // Trim spaces and quotes just in case they were copy-pasted into Render
+  brevoApiKey = process.env.BREVO_API_KEY.trim().replace(/['"]+/g, '');
   console.log('✅ Brevo Email API initialized');
 } else {
   console.warn('⚠️ WARNING: BREVO_API_KEY is missing. Emails will not be sent.');
