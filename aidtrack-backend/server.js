@@ -177,8 +177,9 @@ app.post('/api/send-otp', async (req, res) => {
         console.log('Verification email sent via Brevo HTTP API to:', email);
         res.status(200).json({ message: 'Verification code sent to your email!' });
       } catch (brevoErr) {
+        const errorDetail = brevoErr.response?.data?.message || brevoErr.message;
         console.error("Brevo API Error:", brevoErr.response?.data || brevoErr.message);
-        return res.status(500).json({ message: 'Failed to send email via Brevo.', error: brevoErr.response?.data?.message || 'Unknown provider error' });
+        return res.status(500).json({ message: `Brevo Rejected: ${errorDetail}` });
       }
 
     } else {
