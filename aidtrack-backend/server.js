@@ -8,7 +8,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 // --- APP CONFIGURATION ---
-require('dotenv').config(); // Load environment variables
+require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/'; // Fallback to local
