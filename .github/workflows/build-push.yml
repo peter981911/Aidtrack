@@ -26,7 +26,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./Aidtrack/aidtrack-backend
-          dockerfile: ./Aidtrack/aidtrack-backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aidtrack-backend:latest
 
@@ -34,6 +33,5 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./Aidtrack/aidtrack_frontend
-          dockerfile: ./Aidtrack/aidtrack_frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aidtrack-frontend:latest
