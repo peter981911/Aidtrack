@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./Aidtrack/aidtrack-backend
+      dockerfile: Dockerfile
+    container_name: aidtrack-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./Aidtrack/aidtrack-backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./Aidtrack/aidtrack_frontend
+      dockerfile: Dockerfile
+    container_name: aidtrack-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
