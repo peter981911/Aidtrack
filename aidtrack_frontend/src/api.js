@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const api = axios.create({
-    baseURL: 'https://aidtrack.onrender.com/api',
+const API = axios.create({
+    baseURL: '/api',
 });
 
 // Request Interceptor to add JWT token
-api.interceptors.request.use(
+API.interceptors.request.use(
     (config) => {
         const token = sessionStorage.getItem('aidtrack_token');
         if (token) {
@@ -18,4 +18,4 @@ api.interceptors.request.use(
     }
 );
 
-export default api;
+export default API;

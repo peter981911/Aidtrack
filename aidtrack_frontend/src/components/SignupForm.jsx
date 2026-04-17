@@ -1,7 +1,7 @@
 // src/components/SignupForm.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api'; // Use the centralized API instance
 import { useAuth } from '../context/AuthContext';
 import Button from './ui/Button';
 import Card from './ui/Card';
@@ -41,7 +41,7 @@ function SignupForm() {
     setOtpLoading(true);
     setSuccess('');
     try {
-      const res = await axios.post('https://aidtrack.onrender.com/api/send-otp', { email });
+      const res = await api.post('/send-otp', { email });
       setSuccess(res.data.message);
       setIsOtpSent(true);
     } catch (err) {
@@ -56,7 +56,7 @@ function SignupForm() {
     setError('');
     setSuccess('');
     try {
-      const res = await axios.post('https://aidtrack.onrender.com/api/verify-otp', { email, otp });
+      const res = await api.post('/verify-otp', { email, otp });
       setSuccess(res.data.message);
       setIsEmailVerified(true);
     } catch (err) {
@@ -83,7 +83,7 @@ function SignupForm() {
     setIsLoading(true);
 
     try {
-      await axios.post('https://aidtrack.onrender.com/api/signup', {
+      await api.post('/signup', {
         fullName,
         username,
         email,

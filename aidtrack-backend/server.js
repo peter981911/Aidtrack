@@ -33,6 +33,7 @@ mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ Successfully connected to MongoDB');
     seedStockDatabase();
+    
   })
   .catch((err) => {
     console.error('❌ Error connecting to MongoDB:', err);
@@ -238,10 +239,14 @@ app.post('/api/signup', async (req, res) => {
       return res.status(400).json({ message: 'Email or username already exists.' });
     }
 
-    // 4.5 Check if email was verified via OTP
-    const otpRecord = await OTP.findOne({ email, isVerified: true });
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'You must verify your email address before creating an account.' });
+    // 4.5 Check if email was verified via OTP (skip for local development without SendGrid)
+    if (process.env.SENDGRID_API_KEY) {
+      const otpRecord = await OTP.findOne({ email, isVerified: true });
+      if (!otpRecord) {
+        return res.status(400).json({ message: 'You must verify your email address before creating an account.' });
+      }
+    } else {
+      console.log('⚠️ Skipping email verification for local development (SendGrid API key not configured)');
     }
 
     // NEW: Password Strength Check
@@ -259,13 +264,15 @@ app.post('/api/signup', async (req, res) => {
       username,
       password: hashedPassword,
       role,
-      isVerified: true // Automatically verified since they passed OTP
+      isVerified: true // Automatically verified (OTP skipped for local dev or already verified)
     });
 
     await newUser.save();
 
-    // Clean up OTP to prevent reuse
-    await OTP.findOneAndDelete({ email });
+    // Clean up OTP to prevent reuse (only if OTP was used)
+    if (process.env.SENDGRID_API_KEY) {
+      await OTP.findOneAndDelete({ email });
+    }
 
     // Since they already verified email, we can let them log in immediately.
     res.status(201).json({ message: `Account created successfully! You can now log in.`, user: { id: newUser._id, fullName: newUser.fullName, username: newUser.username, role: newUser.role } });
@@ -881,8 +888,8 @@ app.get('/api/distribution-trends', authenticateToken, async (req, res) => {
 });
 
 // --- START THE SERVER ---
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server is running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend server is running on http://0.0.0.0:${PORT}`);
 });
 
 // --- HELPER FUNCTION TO ADD SEED DATA ---

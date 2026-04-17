@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api'; // Use the centralized API instance
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
@@ -12,7 +12,7 @@ function VerifyEmail() {
     useEffect(() => {
         const verifyToken = async () => {
             try {
-                const response = await axios.get(`https://aidtrack.onrender.com/api/verify-email/${token}`);
+                const response = await api.get(`/verify-email/${token}`);
                 setStatus('success');
                 setMessage(response.data.message || 'Email verified successfully! You can now log in.');
             } catch (error) {
