@@ -25,13 +25,13 @@ jobs:
       - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
-          context: ./Aidtrack/aidtrack-backend
+          context: ./aidtrack-backend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aidtrack-backend:latest
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./Aidtrack/aidtrack_frontend
+          context: ./aidtrack_frontend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aidtrack-frontend:latest
