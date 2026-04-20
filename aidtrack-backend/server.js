@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const crypto = require('crypto');
+const promClient = require('prom-client');
 
 // --- APP CONFIGURATION ---
 require('dotenv').config();
@@ -123,6 +124,26 @@ const isAdmin = (req, res, next) => {
 };
 
 app.get('/', (req, res) => res.send('AidTrack Backend is running!'));
+
+// --- PROMETHEUS METRICS ---
+const collectDefaultMetrics = promClient.collectDefaultMetrics;
+collectDefaultMetrics({ register: promClient.register });
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', promClient.register.contentType);
+  res.send(await promClient.register.metrics());
+});
+
+// --- CUSTOM BUSINESS METRICS ---
+const beneficiariesRegisteredCounter = new promClient.Counter({
+  name: 'aidtrack_beneficiaries_registered_total',
+  help: 'Total number of beneficiaries successfully registered'
+});
+
+const recordsSubmittedCounter = new promClient.Counter({
+  name: 'aidtrack_records_submitted_total',
+  help: 'Total number of distribution records securely submitted'
+});
 
 const validatePasswordStrength = (password) => {
   if (password.length < 8) return false;
@@ -471,6 +492,10 @@ app.post('/api/beneficiaries', authenticateToken, async (req, res) => {
       registeredBy: userId
     });
     await newBeneficiary.save();
+    
+    // DevOps Custom Metric: Increment whenever a beneficiary is actually saved
+    beneficiariesRegisteredCounter.inc();
+    
     res.status(201).json(newBeneficiary);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
@@ -771,6 +796,9 @@ app.post('/api/records', authenticateToken, async (req, res) => {
       console.log(`Custom item "${item}" recorded. Stock not updated.`);
     }
     // --- End Conditional Stock Update ---
+
+    // DevOps Custom Metric: Increment whenever food/aid is fully submitted
+    recordsSubmittedCounter.inc();
 
     res.status(201).json(newRecord); // Send back the created record
 

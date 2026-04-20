@@ -1,0 +1,34 @@
+flowchart TD
+    %% External Interfaces
+    User(["End Users / Volunteers"]) -->|HTTP Requests| Frontend
+    Admin(["DevOps Admin"]) -->|Views Dashboards| Grafana
+
+    subgraph "Docker Compose Cluster"
+        
+        %% Application Layer
+        Frontend["React / Nginx\n[aidtrack-frontend]"]
+        Backend["Node.js API\n[aidtrack-backend]"]
+        
+        %% Observability Layer
+        cAdvisor["Google cAdvisor\n[Container Metrics]"]
+        Prometheus[("Prometheus DB\n[Scraper]")]
+        Grafana["Grafana\n[Visualization]"]
+        
+        %% App Traffic
+        Frontend -->|API Calls on Port 5000| Backend
+        
+        %% Docker hardware tracing
+        cAdvisor -.->|Monitors CPU & RAM| Frontend
+        cAdvisor -.->|Monitors CPU & RAM| Backend
+        
+        %% Metric Scraping (Pull Model)
+        Prometheus -.->|Scrapes :5000/metrics every 5s| Backend
+        Prometheus -.->|Scrapes :8080/metrics every 5s| cAdvisor
+        
+        %% Data querying (Push Model)
+        Grafana ===|PromQL Queries| Prometheus
+    end
+
+    %% External DB
+    MongoDB[("External MongoDB")]
+    Backend <-->|Mongoose queries| MongoDB

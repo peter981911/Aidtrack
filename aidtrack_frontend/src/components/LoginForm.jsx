@@ -65,7 +65,7 @@ function LoginForm() {
 
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-4xl font-heading font-bold text-gray-900 mb-2">
-              Welcome Back
+              Welcome ....
             </h2>
             <p className="text-lg text-gray-600">
               Sign in to manage aid distribution
