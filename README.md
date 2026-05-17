@@ -75,7 +75,7 @@ By default, the frontend runs on `http://localhost:3000` and the backend on `htt
 
 ---
 
-## 🔒 Security & Using as a Template
+##  Security & Using as a Template
 **Your uploaded codebase is completely secure.** Because your live database credentials (`MONGO_URI`) and `JWT_SECRET` are stored in a `.env` file that is ignored by Git, no one downloading this repository can access your production MongoDB Atlas database.
 
 **Want to use this for your own organization?**
