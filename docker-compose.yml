@@ -34,11 +34,14 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    user: "root"
     container_name: grafana
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data_recovery:/var/lib/grafana
     depends_on:
       - prometheus
     restart: unless-stopped
@@ -54,3 +57,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     restart: unless-stopped
+
+volumes:
+  grafana_data_recovery:
+    external: true
+    name: 857069e991aa95b3088033668495637708816df2a4846005ba2322fbbeafd58e
