@@ -1,5 +1,5 @@
 # Stage 1 — build React app
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -9,6 +9,7 @@ RUN npm run build
 
 # Stage 2 — serve with nginx
 FROM nginx:alpine
+RUN apk update && apk upgrade --no-cache
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Custom nginx config to handle React Router
