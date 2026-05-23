@@ -6,7 +6,8 @@ RUN npm install --only=production
 
 #run the application 
 FROM node:20-alpine 
-RUN apk update && apk upgrade --no-cache
+RUN apk update && apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
