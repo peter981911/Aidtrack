@@ -85,3 +85,40 @@ jobs:
         env:
           ACR_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
         run: docker push $ACR_SERVER/aidtrack-frontend:${{ github.sha }}
+
+  deploy:
+    needs: security-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy compose and config files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: azureuser
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "docker-compose.prod.yml,prometheus/prometheus.yml"
+          target: "/home/azureuser/aidtrack"
+
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: azureuser
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            cd /home/azureuser/aidtrack
+            
+            # Login to ACR
+            docker login ${{ secrets.AZURE_ACR_LOGIN_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }}
+            
+            # Pull exactly the images we just built
+            docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-backend:${{ github.sha }}
+            docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-frontend:${{ github.sha }}
+            
+            # Spin up the containers
+            docker compose -f docker-compose.prod.yml down
+            IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d
