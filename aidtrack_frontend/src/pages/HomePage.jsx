@@ -58,7 +58,7 @@ function HomePage() {
                         <div className="flex flex-wrap items-center gap-4">
                             <Link to="/signup">
                                 <Button variant="primary" className="text-lg px-8 py-4 rounded-2xl shadow-xl shadow-primary/25 hover:-translate-y-1 transition-all duration-300">
-                                    Get Started Free
+                                    Get Started
                                 </Button>
                             </Link>
                             <Link to="/login">
