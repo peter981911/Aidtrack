@@ -112,6 +112,18 @@ jobs:
           script: |
             cd /home/azureuser/aidtrack
             
+            # Securely log into Azure using the VM's invisible Managed Identity
+            az login --identity
+            
+            # Fetch passwords from the Key Vault
+            export MONGO_URI=$(az keyvault secret show --name MONGO-URI --vault-name aidtrack-kv --query value -o tsv)
+            export JWT_SECRET=$(az keyvault secret show --name JWT-SECRET --vault-name aidtrack-kv --query value -o tsv)
+            
+            # Write them to a strict, temporary .env file for Docker
+            echo "MONGO_URI=$MONGO_URI" > .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            chmod 600 .env
+            
             # Login to ACR
             docker login ${{ secrets.AZURE_ACR_LOGIN_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }}
             
