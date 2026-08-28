@@ -106,7 +106,7 @@ function ProfilePage() {
           </div>
 
           <div>
-            <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 transition-all shadow-md flex items-center gap-2 font-medium text-sm">
+            <button type="button" onClick={() => navigate(-1)} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 transition-all shadow-md flex items-center gap-2 font-medium text-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               Go Back
             </button>

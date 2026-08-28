@@ -214,8 +214,8 @@ function StockManager() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                    <button onClick={() => handleEditClick(item)} className="text-secondary hover:text-secondary-dark transition-colors">Edit</button>
-                    <button onClick={() => handleDeleteClick(item._id)} disabled={isDeleting === item._id} className="text-red-500 hover:text-red-700 transition-colors">
+                    <button type="button" onClick={() => handleEditClick(item)} className="text-secondary hover:text-secondary-dark transition-colors">Edit</button>
+                    <button type="button" onClick={() => handleDeleteClick(item._id)} disabled={isDeleting === item._id} className="text-red-500 hover:text-red-700 transition-colors">
                       {isDeleting === item._id ? '...' : 'Delete'}
                     </button>
                   </td>

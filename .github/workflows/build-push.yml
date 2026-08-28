@@ -33,12 +33,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Azure Container Registry
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-          username: ${{ secrets.AZURE_ACR_USERNAME }}
-          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd
 
       # --- 2. TRIVY & BUILD: BACKEND ---
       - name: Build backend (Local Load)
@@ -46,12 +50,12 @@ jobs:
         with:
           context: ./aidtrack-backend
           load: true
-          tags: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-backend:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/aidtrack-backend:${{ github.sha }}
 
       - name: Trivy Scan Backend
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-backend:${{ github.sha }}'
+          image-ref: '${{ steps.login-ecr.outputs.registry }}/aidtrack-backend:${{ github.sha }}'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -60,8 +64,8 @@ jobs:
 
       - name: Push Backend Image
         env:
-          ACR_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-        run: docker push $ACR_SERVER/aidtrack-backend:${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker push $ECR_REGISTRY/aidtrack-backend:${{ github.sha }}
 
       # --- 3. TRIVY & BUILD: FRONTEND ---
       - name: Build frontend (Local Load)
@@ -69,12 +73,12 @@ jobs:
         with:
           context: ./aidtrack_frontend 
           load: true
-          tags: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-frontend:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/aidtrack-frontend:${{ github.sha }}
 
       - name: Trivy Scan Frontend
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-frontend:${{ github.sha }}'
+          image-ref: '${{ steps.login-ecr.outputs.registry }}/aidtrack-frontend:${{ github.sha }}'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -83,8 +87,8 @@ jobs:
 
       - name: Push Frontend Image
         env:
-          ACR_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-        run: docker push $ACR_SERVER/aidtrack-frontend:${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker push $ECR_REGISTRY/aidtrack-frontend:${{ github.sha }}
 
   deploy:
     needs: security-and-build
@@ -94,43 +98,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy compose and config files to VM
-        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
+      - name: Copy compose and config files to EC2
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634
         with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: azureuser
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          host: ${{ secrets.AWS_EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
           source: "docker-compose.prod.yml,prometheus/prometheus.yml"
-          target: "/home/azureuser/aidtrack"
+          target: "/home/ubuntu/aidtrack"
 
-      - name: Deploy to Azure VM
-        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
         with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: azureuser
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          host: ${{ secrets.AWS_EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
           script: |
-            cd /home/azureuser/aidtrack
+            cd /home/ubuntu/aidtrack
             
-            # Securely log into Azure using the VM's invisible Managed Identity
-            az login --identity
-            
-            # Fetch passwords from the Key Vault
-            export MONGO_URI=$(az keyvault secret show --name MONGO-URI --vault-name aidtrack-kv --query value -o tsv)
-            export JWT_SECRET=$(az keyvault secret show --name JWT-SECRET --vault-name aidtrack-kv --query value -o tsv)
+            # Fetch secrets from AWS Systems Manager Parameter Store
+            # Assuming EC2 instance has an IAM Role attached with SSM permissions
+            export AWS_DEFAULT_REGION=ap-south-1
+            export MONGO_URI=$(aws ssm get-parameter --name "/aidtrack/MONGO_URI" --with-decryption --query "Parameter.Value" --output text)
+            export JWT_SECRET=$(aws ssm get-parameter --name "/aidtrack/JWT_SECRET" --with-decryption --query "Parameter.Value" --output text)
             
             # Write them to a strict, temporary .env file for Docker
             echo "MONGO_URI=$MONGO_URI" > .env
             echo "JWT_SECRET=$JWT_SECRET" >> .env
             chmod 600 .env
             
-            # Login to ACR
-            docker login ${{ secrets.AZURE_ACR_LOGIN_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }}
+            # Authenticate Docker to ECR using the attached IAM Role
+            aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+            
+            # Export Registry Variable for Docker Compose
+            export AWS_ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com"
+            export IMAGE_TAG=${{ github.sha }}
             
             # Pull exactly the images we just built
-            docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-backend:${{ github.sha }}
-            docker pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/aidtrack-frontend:${{ github.sha }}
+            docker pull $AWS_ECR_REGISTRY/aidtrack-backend:$IMAGE_TAG
+            docker pull $AWS_ECR_REGISTRY/aidtrack-frontend:$IMAGE_TAG
             
             # Spin up the containers
             docker compose -f docker-compose.prod.yml down
-            IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d

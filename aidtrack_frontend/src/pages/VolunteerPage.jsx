@@ -41,7 +41,7 @@ function VolunteerPage() {
             </span>
             My Profile
           </Link>
-          <button
+          <button type="button"
             onClick={logout}
             className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5"
           >
