@@ -1,6 +1,6 @@
 services:
   backend:
-    image: aidtrackacr.azurecr.io/aidtrack-backend:${IMAGE_TAG:-latest}
+    image: ${AWS_ECR_REGISTRY}/aidtrack-backend:${IMAGE_TAG:-latest}
     container_name: aidtrack-backend
     ports:
       - "5000:5000"
@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: aidtrackacr.azurecr.io/aidtrack-frontend:${IMAGE_TAG:-latest}
+    image: ${AWS_ECR_REGISTRY}/aidtrack-frontend:${IMAGE_TAG:-latest}
     container_name: aidtrack-frontend
     ports:
       - "80:80"
