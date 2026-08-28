@@ -114,6 +114,17 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
           script: |
+            # Ensure AWS CLI is installed on the EC2 instance
+            if ! command -v aws &> /dev/null; then
+              echo "AWS CLI not found. Installing..."
+              sudo apt-get update && sudo apt-get install -y unzip
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip -q awscliv2.zip
+              sudo ./aws/install
+              rm -rf aws awscliv2.zip
+            fi
+            
+            mkdir -p /home/ubuntu/aidtrack
             cd /home/ubuntu/aidtrack
             
             # Fetch secrets from AWS Systems Manager Parameter Store
