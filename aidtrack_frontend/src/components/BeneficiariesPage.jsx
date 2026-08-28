@@ -300,8 +300,8 @@ function BeneficiariesPage() {
                   </td>
                   {user?.role === 'admin' && (
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                      <button onClick={() => handleEditClick(b)} className="text-secondary hover:text-secondary-dark transition-colors">Edit</button>
-                      <button onClick={() => handleDeleteClick(b._id, b.familyId)} disabled={isDeleting === b._id} className="text-red-500 hover:text-red-700 transition-colors">
+                      <button type="button" onClick={() => handleEditClick(b)} className="text-secondary hover:text-secondary-dark transition-colors">Edit</button>
+                      <button type="button" onClick={() => handleDeleteClick(b._id, b.familyId)} disabled={isDeleting === b._id} className="text-red-500 hover:text-red-700 transition-colors">
                         {isDeleting === b._id ? '...' : 'Delete'}
                       </button>
                     </td>
